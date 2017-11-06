@@ -39,15 +39,15 @@
 
 using namespace QtDataVisualization;
 
-const static double IMU_FREQ = 30; //IMU data availability frequency (Hz)
-const static double IMU_PERIOD = 1/IMU_FREQ; // IMU data availability period (sec)
-const static double IMU_OFFSET = 0.5*IMU_PERIOD; // Offset between reporting of each device (sec)
+const static double IMU_FREQ = 30;              //IMU data availability frequency (Hz)
+const static double IMU_PERIOD = 1/IMU_FREQ;    // IMU data availability period (sec)
+const static double IMU_OFFSET = 0.5*IMU_PERIOD;// Offset between reporting of each device (sec)
 
-const static double C_IMU_LAG = IMU_PERIOD/10; //Lag between IMU sense and reporting
-const static double X_IMU_LAG = IMU_PERIOD/10; //Lag between IMU sense and reporting
+const static double C_IMU_LAG = IMU_PERIOD/10;  //Lag between IMU sense and reporting
+const static double X_IMU_LAG = IMU_PERIOD/10;  //Lag between IMU sense and reporting
 const static double POS_LAG = 0.01; //Camera position reporting lag (sec)
 
-const std::string IMU_DATA_FILE = "C:\\Users\\daniel.tweed\\Documents\\GitHub\\wrnch-qt\\smTestDataC.csv";
+const std::string IMU_DATA_FILE = "C:\\Users\\daniel.tweed\\Documents\\GitHub\\wrnch-qt\\smTestData.csv";
 const static double PRED_FWD_DELTA = 0.2; // Forward time step for prediction (sec)
 const static double ALPHA = 0.6; //Constant used in complimentary filter for X position in C's reference frame
 
@@ -58,33 +58,7 @@ std::array<double,3> transformPosToRefFrame (const etk::Matrix<3,3>& rotation, s
 void initQObjects( Q3DScatter& graph,  QWidget& container);
 void setupSeries(Q3DScatter& graph);
 
-std::vector<std::array<std::array<double,3>,3>> getIMUData() {
-    std::vector<std::array<std::array<double,3>,3>> imuData;
-
-    try {
-        std::string line;
-        std::ifstream fileIn(IMU_DATA_FILE);
-
-        while(fileIn.good() && std::getline(fileIn, line) ) {
-            std::vector<double> tokens;
-            std::string token;
-            std::array<std::array<double,3>,3> reading;
-            std::istringstream iss(line);
-            while (std::getline(iss, token, ',')){
-                tokens.push_back(std::stod(token));
-            }
-            std::vector<double>::iterator it = tokens.begin();
-            reading[0] = {*it++, *it++,*it++};
-            reading[1] = {*it++, *it++,*it++};
-            reading[2] = {*it++, *it++,*it};
-            imuData.push_back(reading);
-        }
-    } catch (std::ifstream::failure &err) {
-        throw err;
-    }
-
-    return imuData;
-}
+std::vector<std::array<std::array<double,3>,3>> getIMUData();
 
 int main(int argc, char**argv) {
 
@@ -147,7 +121,6 @@ int main(int argc, char**argv) {
     std::array<double,3> currTranslation = initFrameTranslation;
     C.setTrackingData(initFrameTranslation);
 
-std::cout << data.size() << std::endl;
     for (auto dataSet : data) {
 
         //X position in C's reference fram at PRED_FWD_DELTA is based on current estimate of X position in C
@@ -160,25 +133,25 @@ std::cout << data.size() << std::endl;
 
         //Rotate X's velocity into C's reference frame
         xVelInC = rotate3DVector(cRotation, xState.getEstVel());
+    {using namespace wrnch; //For std::array arithmetic
 
-        //Update translation from C to X reference frame
-        {using namespace wrnch;
-            currTranslation = initFrameTranslation + cState.getEstPos();
-        }
+        //Update translation from C to X reference frame        
+        currTranslation = initFrameTranslation + cState.getEstPos();
+
         //Get current position of X in C's reference frame
         xPosInCFrame = transformPosToRefFrame (cRotation, xState.getEstPos(), currTranslation);
 
         //If available, adjust with C's 3D position data reported for X
-        {using namespace wrnch;
-            C.setTrackingData(xPosInCFrame);//Plus noise
-            if (C.isInField())
-                xEstPosInCFrame = ALPHA * xPosInCFrame + (1 - ALPHA) * C.getTrackingData();
-            else //Else use IMU data
-                xEstPosInCFrame = xPosInCFrame;
-        //Predict future position of X at PRED_FWD_DELTA
 
-            xFuturePosInC = xEstPosInCFrame + xVelInC * (PRED_FWD_DELTA);
-        }
+        C.setTrackingData(xPosInCFrame);//TODO: Plus noise
+        if (C.isInField())
+            xEstPosInCFrame = ALPHA * xPosInCFrame + (1 - ALPHA) * C.getTrackingData();
+        else //Else use IMU data
+            xEstPosInCFrame = xPosInCFrame;
+
+        //Predict future position of X
+        xFuturePosInC = xEstPosInCFrame + xVelInC * (PRED_FWD_DELTA+X_IMU_LAG);
+    }
 
         std::array<double,3> cPos = cState.getEstPos();
         //std::array<double,3> xPos = rotate3DVector(cRotation,xState.getEstPos());
@@ -187,15 +160,20 @@ std::cout << data.size() << std::endl;
         (xPosDataArrayPtr++)->setPosition(QVector3D(xPosInCFrame[0],xPosInCFrame[1],xPosInCFrame[2]));
         (xPredictedPosPtr++)->setPosition(QVector3D(xFuturePosInC[0],xFuturePosInC[1],xFuturePosInC[2]));
     }
-    graph->seriesList().at(0)->dataProxy()->resetArray(cPosDataArray);
-    graph->seriesList().at(1)->dataProxy()->resetArray(xPosDataArray);
-    graph->seriesList().at(2)->dataProxy()->resetArray(xPredictedPos);
+    graph->seriesList().at(0)->dataProxy()->resetArray(cPosDataArray); //Add C position data to plot
+    graph->seriesList().at(1)->dataProxy()->resetArray(xPosDataArray); //Add X position data
+    graph->seriesList().at(2)->dataProxy()->resetArray(xPredictedPos); //Add C's predicted position of X
 
     widget->show();
     return app.exec();
-
 }
 
+/** Transforms the orientation of a vector from one frame of reference to another
+ *   as defined by a rotation matrix
+ * @param Rotation matrix
+ * @param Vector to be rotated
+ * @return Rotated vector
+ */
 std::array<double,3> rotate3DVector(const etk::Matrix<3,3>& rotation,  std::array<double,3> vector){
     using namespace wrnch;
     std::array<double,3> rotated = {0,0,0};
@@ -206,6 +184,13 @@ std::array<double,3> rotate3DVector(const etk::Matrix<3,3>& rotation,  std::arra
     return rotated;
 }
 
+/** Applies rotation and translation to express a vector position in another
+ *   frame of reference
+ * @param Frame rotation matrix
+ * @param Position to be transformed
+ * @param Frame translation vector
+ * @return
+ */
 std::array<double,3> transformPosToRefFrame (const etk::Matrix<3,3>& rotation, std::array<double,3> position,
                                              std::array<double,3> translation){
     using namespace wrnch;
@@ -216,6 +201,7 @@ std::array<double,3> transformPosToRefFrame (const etk::Matrix<3,3>& rotation, s
     return rotated + translation;
 }
 
+/** Helper function to initialize various QObjects */
 void initQObjects( Q3DScatter& graph,  QWidget& container) {
     QSize screenSize = graph.screen()->size();//graph->screen()->size();
     container.setMinimumSize(QSize(screenSize.width() / 2, screenSize.height() / 1.5));
@@ -227,12 +213,12 @@ void initQObjects( Q3DScatter& graph,  QWidget& container) {
     graph.activeTheme()->setGridEnabled(true);
     graph.activeTheme()->setBackgroundEnabled(true);
     graph.activeTheme()->setLabelBackgroundEnabled(false);
-    graph.axisX()->setMax(100);
-    graph.axisY()->setMax(100);
-    graph.axisZ()->setMax(100);
-    graph.axisX()->setMin(-10);
-    graph.axisY()->setMin(-10);
-    graph.axisZ()->setMin(-10);
+    graph.axisX()->setMax(3);
+    graph.axisY()->setMax(3);
+    graph.axisZ()->setMax(3);
+    graph.axisX()->setMin(-3);
+    graph.axisY()->setMin(-3);
+    graph.axisZ()->setMin(-3);
     graph.axisX()->setTitle("X");
     graph.axisY()->setTitle("Y");
     graph.axisZ()->setTitle("Z");
@@ -242,6 +228,7 @@ void initQObjects( Q3DScatter& graph,  QWidget& container) {
     graph.scene()->activeCamera()->setCameraPreset(Q3DCamera::CameraPresetFront);
 }
 
+/** Helper function to setup required data series for plotting */
 void setupSeries(Q3DScatter& graph) {
     QScatterDataProxy *cDataProxy = new QScatterDataProxy;
     QScatter3DSeries *cDataSeries = new QScatter3DSeries(cDataProxy);
@@ -265,14 +252,43 @@ void setupSeries(Q3DScatter& graph) {
 
     graph.addSeries(xDataSeries);
 
-    QScatterDataProxy *xPredDataProxy = new QScatterDataProxy;
-    QScatter3DSeries *xPredDataSeries = new QScatter3DSeries(xPredDataProxy);
-    xPredDataSeries->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
-    xPredDataSeries->setMesh(QAbstract3DSeries::MeshSphere);
-    xPredDataSeries->setItemSize(0.1f);
-    xPredDataSeries->setBaseColor(QColor("red"));
+    QScatterDataProxy *xPredictedDataProxy = new QScatterDataProxy;
+    QScatter3DSeries *xPredictedDataSeries = new QScatter3DSeries(xPredictedDataProxy);
+    xPredictedDataSeries->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
+    xPredictedDataSeries->setMesh(QAbstract3DSeries::MeshSphere);
+    xPredictedDataSeries->setItemSize(0.1f);
+    xPredictedDataSeries->setBaseColor(QColor("red"));
     xDataSeries->setItemLabelVisible(true);
     xDataSeries->setName(QStringLiteral("X\'"));
 
-    graph.addSeries(xPredDataSeries);
+    graph.addSeries(xPredictedDataSeries);
+}
+
+/** Helper function to process CSV formatted IMU data for offline processing */
+std::vector<std::array<std::array<double,3>,3>> getIMUData() {
+    std::vector<std::array<std::array<double,3>,3>> imuData;
+
+    try {
+        std::string line;
+        std::ifstream fileIn(IMU_DATA_FILE);
+
+        while(fileIn.good() && std::getline(fileIn, line) ) {
+            std::vector<double> tokens;
+            std::string token;
+            std::array<std::array<double,3>,3> reading;
+            std::istringstream iss(line);
+            while (std::getline(iss, token, ',')){
+                tokens.push_back(std::stod(token));
+            }
+            std::vector<double>::iterator it = tokens.begin();
+            reading[0] = {*it++, *it++,*it++};
+            reading[1] = {*it++, *it++,*it++};
+            reading[2] = {*it++, *it++,*it};
+            imuData.push_back(reading);
+        }
+    } catch (std::ifstream::failure &err) {
+        throw err;
+    }
+
+    return imuData;
 }

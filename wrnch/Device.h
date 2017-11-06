@@ -13,16 +13,15 @@
 
 class Device {
 private:
-    IMU * imu;
-    Device(const Device&);
+    IMU * imu;    
 
 public:
     Device();
+    Device(const Device&);
     virtual ~Device() noexcept { delete imu; imu = nullptr;};
 
     IMU& getIMU();
     std::array<std::array<double,3>,3> getIMUdata();
 
 };
-
 #endif //WRNCH_DEVICE_H

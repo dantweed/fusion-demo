@@ -18,8 +18,7 @@
 class DeviceState {
 public:
     DeviceState() = delete;
-    DeviceState(Device &,float);
-    static const double G; //Gravitational acceleration m/s^2
+    DeviceState(Device &,float);    
 
     std::array<double,3> getEstVel();
     std::array<double,3> getEstPos();    
@@ -33,7 +32,7 @@ private:
     float deltaT;   //Device data update period
 
     //Relative to own reference frame
-    std::array<double,3> estPos;
+    std::array<double,3> estPos;    // m/s
     std::array<double,3> estVel;    // m/s
     etk::Quaternion estOrient;      // Quaternion represntation of orientation
 

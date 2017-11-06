@@ -1,5 +1,6 @@
 //
 // Helper templates for array arithmetic
+//
 // Created by Daniel.Tweed on 11/5/2017.
 //
 

@@ -30,6 +30,4 @@ public:
     void update(double);
     double filtered();
 };
-
-
 #endif //WRNCH_KALMAN_H

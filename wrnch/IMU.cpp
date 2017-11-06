@@ -5,11 +5,9 @@
 #include "IMU.h"
 
 //Default constructor
-//Initialize at rest and inline with x-y plane
-// Will be updated by sensor data on read
 IMU::IMU()  {    
-    acc ={0,0,0};
-    gyro ={0,0,0};
+    acc ={0,0,0}; //Initialize at rest and inline with x-y plane
+    gyro ={0,0,0};// Will be updated by sensor data on read
     mag = {0,0,0};
 }
 
@@ -43,8 +41,8 @@ std::array<double,3> IMU::getMag(){
     return rtnVal;
 }
 
-/** Set acceleromter values
- * @brief IMU::setAcc
+/** Set acceleromter
+ *
  * @param newAcc
  */
 void IMU::setAcc(std::array<double,3> newAcc) {

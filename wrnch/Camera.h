@@ -16,7 +16,7 @@ class Camera : public Device {
 
 private:
     std::array<double, 3> trackingData; //Location of tracked object in Camera's reference frame
-    bool inField;       // Flag to indicate if X is in camera's field of view
+    bool inField;                       // Flag to indicate if X is in camera's field of view
 
 public:
     Camera();
@@ -25,6 +25,4 @@ public:
     void setInfield(bool);
     bool isInField();
 };
-
-
 #endif //WRNCH_CAMERA_H

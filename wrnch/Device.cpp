@@ -12,7 +12,7 @@ Device::Device() {
     imu = new IMU();
 }
 
-//Copy constructor defined due to pointer data member
+//Copy constructor to handle pointer data member
 Device::Device(const Device& copy) {
     imu = new IMU();
     imu = copy.imu;
@@ -21,7 +21,7 @@ Device::Device(const Device& copy) {
 /** Access and return available sensor data from IMU
  *
  * @return array of raw sensor readings
- *  Retrun value format: { {accX, accY, accZ},{gyroX, gyroY, gyroZ},{magX, magY, magZ} }
+ *  Return value format: { {accX, accY, accZ},{gyroX, gyroY, gyroZ},{magX, magY, magZ} }
  */
 std::array<std::array<double,3>,3> Device::getIMUdata(){
     std::array<std::array<double,3>,3> imuData= {imu->getAcc(),imu->getGyro(), imu->getMag()};

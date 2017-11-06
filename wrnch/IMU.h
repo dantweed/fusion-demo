@@ -29,5 +29,4 @@ public:
     void setGyro(std::array<double,3>);
     void setMag(std::array<double,3>);
 };
-
 #endif //WRNCH_IMU_H

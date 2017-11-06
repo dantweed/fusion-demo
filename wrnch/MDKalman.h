@@ -70,5 +70,4 @@ public:
 private:
     std::vector<Kalman*> filters;
 };
-
 #endif //WRNCH_MDKALMAN_H

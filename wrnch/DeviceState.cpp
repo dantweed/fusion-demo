@@ -24,8 +24,6 @@ DeviceState::DeviceState(Device & dev_, float dT) : dev(dev_), deltaT(dT){
     //estOrient initialized to initialized to (1,0,0,0) by etk::Quaternion()
 }
 
-const double DeviceState::G = 9.8; //Gravitational acceleration m/s^2
-
 /** Access and return current estimated velocity
  *
  * @return velocity in 3d array (v_x,v_y,v_z)
@@ -104,7 +102,7 @@ void DeviceState::updateVel() {
 
     std::array<double,3> accData = acc.filtered();
 
-    estVel  = estVel + (accData - g)*G*deltaT;
+    estVel  = estVel + (accData - g)*deltaT;
 }
 
 /** Updates device position in its own reference frame based on current position
@@ -149,7 +147,7 @@ void DeviceState::updateOrient() {
     estOrient = estOrient*qw;
 
     //Use Spherical Linear Interpolation to move estimate closer to q_accel estimate to combat gryo drift
-    estOrient = estOrient.slerp(q_accel, 0.05); //TODO:ORIENTATION_FILTER_GAIN= 0.05 tbd if this is good or not
+    estOrient = estOrient.slerp(q_accel, 0.05);
 }
 
 
