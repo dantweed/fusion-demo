@@ -1,6 +1,6 @@
 //
 // Device.h
-// An arbitrary device with on-board 9DOF IMU
+// An arbitrary device with on-board 9-DOF IMU
 //
 // Created by Daniel.Tweed on 11/2/2017.
 //

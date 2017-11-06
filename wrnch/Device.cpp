@@ -21,7 +21,7 @@ Device::Device(const Device& copy) {
 /** Access and return available sensor data from IMU
  *
  * @return array of raw sensor readings
- *       Retrun value format: { {accX, accY, accZ},{gyroX, gyroY, gyroZ},{magX, magY, magZ} }
+ *  Retrun value format: { {accX, accY, accZ},{gyroX, gyroY, gyroZ},{magX, magY, magZ} }
  */
 std::array<std::array<double,3>,3> Device::getIMUdata(){
     std::array<std::array<double,3>,3> imuData= {imu->getAcc(),imu->getGyro(), imu->getMag()};

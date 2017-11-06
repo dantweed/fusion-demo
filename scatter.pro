@@ -51,9 +51,6 @@ HEADERS += scatterdatamodifier.h \
     wrnch/IMU.h \
     wrnch/kalman.h \
     wrnch/MDKalman.h \
-    wrnch/mingw.condition_variable.h \
-    wrnch/mingw.mutex.h \
-    wrnch/mingw.thread.h \   
 
 QT += widgets
 

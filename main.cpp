@@ -28,12 +28,13 @@
 #include <QtGui/QScreen>
 #include <QtGui/QFontDatabase>
 
-
 const static double IMU_FREQ = 30; //IMU data availability frequency (Hz)
 const static double IMU_PERIOD = 1/IMU_FREQ; // IMU data availability period (sec)
 const static double IMU_OFFSET = 0.5*IMU_PERIOD; // Offset between reporting of each device (sec)
 
-const static double POS_LAG = 0.1; //Camera position reporting lag (sec)
+const static double C_IMU_LAG = IMU_PERIOD/10; //Lag between IMU sense and reporting
+const static double X_IMU_LAG = IMU_PERIOD/10; //Lag between IMU sense and reporting
+const static double POS_LAG = 0.01; //Camera position reporting lag (sec)
 
 const static double PRED_FWD_DELTA = 0.2; // Forward time step for prediction (sec)
 const static double ALPHA = 0.6; //Constant used in complimentary filter for X position in C's reference frame
@@ -41,6 +42,9 @@ const static double ALPHA = 0.6; //Constant used in complimentary filter for X p
 std::array<double,3> rotate3DVector(const etk::Matrix<3,3>& cRotation,  std::array<double,3> vector);
 std::array<double,3> transformPosToRefFrame (const etk::Matrix<3,3>& rotation, std::array<double,3> position,
                                              std::array<double,3> translation);
+
+void initQObjects( Q3DScatter& graph,  QWidget& container);
+void setupSeries(Q3DScatter& graph);
 
 int main(int argc, char**argv) {
 
@@ -86,86 +90,28 @@ int main(int argc, char**argv) {
         xFuturePosInC = xPosInCFrame + xVelInC * PRED_FWD_DELTA;
     }
 
-    for ( auto a: xVelInC)
+    for ( auto a: xFuturePosInC)
         std::cout << a << std::endl;
 
     QApplication app(argc, argv);
     Q3DScatter *graph = new Q3DScatter();
     QWidget *container = QWidget::createWindowContainer(graph);
-    //! [0]
-
     if (!graph->hasContext()) {
         QMessageBox msgBox;
         msgBox.setText("Couldn't initialize the OpenGL context.");
         msgBox.exec();
         return -1;
     }
-    QSize screenSize = graph->screen()->size();
-    container->setMinimumSize(QSize(screenSize.width() / 2, screenSize.height() / 1.5));
-    container->setMaximumSize(screenSize);
-    container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    container->setFocusPolicy(Qt::StrongFocus);
 
-    //! [1]
     QWidget *widget = new QWidget;
     QHBoxLayout *hLayout = new QHBoxLayout(widget);
     QVBoxLayout *vLayout = new QVBoxLayout();
     hLayout->addWidget(container, 1);
-    hLayout->addLayout(vLayout);
-    //! [1]
-
+    hLayout->addLayout(vLayout);    
     widget->setWindowTitle(QStringLiteral("Object Tracking and Prediction"));
 
-    //! [2]
-    ScatterDataModifier *modifier = new ScatterDataModifier(graph);
-    //! [2]
-
-    graph->activeTheme()->setType(Q3DTheme::ThemeQt);
-    graph->activeTheme()->setGridEnabled(true);
-    graph->activeTheme()->setBackgroundEnabled(true);
-    graph->activeTheme()->setLabelBackgroundEnabled(false);
-    graph->axisX()->setMax(4);
-    graph->axisY()->setMax(4);
-    graph->axisZ()->setMax(4);
-    graph->axisX()->setMin(-3);
-    graph->axisY()->setMin(-3);
-    graph->axisZ()->setMin(-3);
-    graph->axisX()->setTitle("X");
-    graph->axisY()->setTitle("Y");
-    graph->axisZ()->setTitle("Z");
-
-    QFont serifFont("Times", 10, QFont::Bold);
-    serifFont.setPointSizeF(40.0f);
-    graph->activeTheme()->setFont(serifFont);
-
-    QScatterDataProxy *proxy = new QScatterDataProxy;
-    QScatter3DSeries *series = new QScatter3DSeries(proxy);
-    series->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
-    series->setMesh(QAbstract3DSeries::MeshBevelCube);
-    series->setItemSize(0.1f);
-    series->setBaseColor(QColor("black"));
-
-    graph->addSeries(series);
-
-    QScatterDataProxy *proxy2 = new QScatterDataProxy;
-    QScatter3DSeries *series2 = new QScatter3DSeries(proxy2);
-    series2->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
-    series2->setMesh(QAbstract3DSeries::MeshPyramid);
-    series2->setItemSize(0.1f);
-    series2->setBaseColor(QColor("blue"));
-
-    graph->addSeries(series2);
-
-    QScatterDataProxy *proxy3 = new QScatterDataProxy;
-    QScatter3DSeries *series3 = new QScatter3DSeries(proxy3);
-    series3->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
-    series3->setMesh(QAbstract3DSeries::MeshCube);
-    series3->setItemSize(0.1f);
-
-    series3->setBaseColor(QColor("cyan"));
-
-    graph->addSeries(series3);
-
+    initQObjects(*graph, *container);
+    setupSeries(*graph);
     QScatterDataArray *dataArray = new QScatterDataArray;
     dataArray->resize(1);
     QScatterDataItem *ptrToDataArray = &dataArray->first();
@@ -184,12 +130,8 @@ int main(int argc, char**argv) {
     graph->seriesList().at(0)->dataProxy()->resetArray(dataArray);
     graph->seriesList().at(1)->dataProxy()->resetArray(dataArray2);
     graph->seriesList().at(2)->dataProxy()->resetArray(dataArray3);
-    modifier->addData(QVector3D(-2,0,1),2);
 
     widget->show();
-
-
-
     return app.exec();
 
 }
@@ -212,4 +154,60 @@ std::array<double,3> transformPosToRefFrame (const etk::Matrix<3,3>& rotation, s
     // Notation: postion of a in b frame: p_a,b
     // p_x,c = p_x,x*rotation_to_x + translation_to_x
     return rotated + translation;
+}
+
+void initQObjects( Q3DScatter& graph,  QWidget& container) {
+    QSize screenSize = graph.screen()->size();//graph->screen()->size();
+    container.setMinimumSize(QSize(screenSize.width() / 2, screenSize.height() / 1.5));
+    container.setMaximumSize(screenSize);
+    container.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    container.setFocusPolicy(Qt::StrongFocus);
+
+    graph.activeTheme()->setType(Q3DTheme::ThemeQt);
+    graph.activeTheme()->setGridEnabled(true);
+    graph.activeTheme()->setBackgroundEnabled(true);
+    graph.activeTheme()->setLabelBackgroundEnabled(false);
+    graph.axisX()->setMax(4);
+    graph.axisY()->setMax(4);
+    graph.axisZ()->setMax(4);
+    graph.axisX()->setMin(-3);
+    graph.axisY()->setMin(-3);
+    graph.axisZ()->setMin(-3);
+    graph.axisX()->setTitle("X");
+    graph.axisY()->setTitle("Y");
+    graph.axisZ()->setTitle("Z");
+    QFont serifFont("Times", 10, QFont::Bold);
+    serifFont.setPointSizeF(40.0f);
+    graph.activeTheme()->setFont(serifFont);
+    graph.scene()->activeCamera()->setCameraPreset(Q3DCamera::CameraPresetFront);
+}
+
+void setupSeries(Q3DScatter& graph) {
+ QScatterDataProxy *proxy = new QScatterDataProxy;
+    QScatter3DSeries *series = new QScatter3DSeries(proxy);
+    series->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
+    series->setMesh(QAbstract3DSeries::MeshBevelCube);
+    series->setItemSize(0.1f);
+    series->setBaseColor(QColor("black"));
+
+    graph.addSeries(series);
+
+    QScatterDataProxy *proxy2 = new QScatterDataProxy;
+    QScatter3DSeries *series2 = new QScatter3DSeries(proxy2);
+    series2->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
+    series2->setMesh(QAbstract3DSeries::MeshPyramid);
+    series2->setItemSize(0.1f);
+    series2->setBaseColor(QColor("blue"));
+
+    graph.addSeries(series2);
+
+    QScatterDataProxy *proxy3 = new QScatterDataProxy;
+    QScatter3DSeries *series3 = new QScatter3DSeries(proxy3);
+    series3->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
+    series3->setMesh(QAbstract3DSeries::MeshCube);
+    series3->setItemSize(0.1f);
+
+    series3->setBaseColor(QColor("cyan"));
+
+    graph.addSeries(series3);
 }
