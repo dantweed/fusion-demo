@@ -22,11 +22,11 @@ public:
     static const double G; //Gravitational acceleration m/s^2
 
     std::array<double,3> getEstVel();
-    std::array<double,3> getEstPos();
+    std::array<double,3> getEstPos();    
     std::array<double,3> getEstOrientAngles();
     etk::Quaternion getEstOrientQ();
 
-    void updateFromIMU();
+    void updateFromIMU(std::array<std::array<double,3>,3> imuData);
 
 private:
     Device & dev;

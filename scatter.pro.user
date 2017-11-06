@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.4.1, 2017-11-05T23:31:48. -->
+<!-- Written by QtCreator 4.4.1, 2017-11-06T15:11:51. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -292,7 +292,7 @@
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.ProFile">scatter.pro</value>
     <value type="bool" key="Qt4ProjectManager.Qt4RunConfiguration.UseDyldImageSuffix">false</value>
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.UserWorkingDirectory"></value>
-    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.UserWorkingDirectory.default"></value>
+    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.UserWorkingDirectory.default">C:/Users/daniel.tweed/Documents/Qt-5.9/datavisualization/build-scatter-Desktop_Qt_5_9_0_MinGW_32bit-Debug</value>
     <value type="uint" key="RunConfiguration.QmlDebugServerPort">3768</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>

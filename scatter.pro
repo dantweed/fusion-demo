@@ -6,15 +6,15 @@ android|ios|winrt {
     error( "Couldn't find the examples.pri file!" )
 }
 
-SOURCES += scatterdatamodifier.cpp \
+SOURCES += \
     wrnch/Camera.cpp \
     wrnch/Device.cpp \
     wrnch/DeviceState.cpp \
     wrnch/IMU.cpp \
     wrnch/kalman.cpp \    
-    main.cpp
+    main.cpp \
 
-HEADERS += scatterdatamodifier.h \
+HEADERS += \
     wrnch/etk/array.h \
     wrnch/etk/bits.h \
     wrnch/etk/conversions.h \
@@ -50,9 +50,12 @@ HEADERS += scatterdatamodifier.h \
     wrnch/DeviceState.h \
     wrnch/IMU.h \
     wrnch/kalman.h \
-    wrnch/MDKalman.h \
+    wrnch/MDKalman.h
 
 QT += widgets
 
 OTHER_FILES += doc/src/* \
                doc/images/*
+
+DISTFILES += \
+    smTestData.csv

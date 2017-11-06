@@ -69,9 +69,9 @@ etk::Quaternion DeviceState::getEstOrientQ(){
 /** Updates device state from IMU data
  *
  */
+void DeviceState::updateFromIMU(std::array<std::array<double,3>,3> imuData){
+    //std::array<std::array<double,3>,3> imuData = dev.getIMUdata();
 
-void DeviceState::updateFromIMU(){
-    std::array<std::array<double,3>,3> imuData = dev.getIMUdata();
     std::array<double,3> accRead = imuData[0];
     std::array<double,3> gyroRead =  imuData[1];
     std::array<double,3> magRead = imuData[2];
@@ -93,6 +93,7 @@ void DeviceState::updateFromIMU(){
  */
 void DeviceState::updateVel() {
     //Estimated influence of gravity on accelerometer reading
+    // i.e. calculate free acceleration
     std::array<double,3> g= {0.0,0.0,0.0};
 
     //Calculated from quaternion representing current orientation of the device
