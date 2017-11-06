@@ -26,17 +26,25 @@ DeviceState::DeviceState(Device & dev_, float dT) : dev(dev_), deltaT(dT){
 
 const double DeviceState::G = 9.8; //Gravitational acceleration m/s^2
 
+/** Access and return current estimated velocity
+ *
+ * @return velocity in 3d array (v_x,v_y,v_z)
+ */
 std::array<double,3> DeviceState::getEstVel() {
     return estVel;
 };
 
+/** Access and return current estimated
+ *
+ * @return position in 3d array (p_x,p_y,p_z)
+ */
 std::array<double,3> DeviceState::getEstPos(){
     return estPos;
 };
 
-/** Access and return estimated orientation in Euler angles
+/** Access and return current stimated orientation in Euler angles
  *
- * @return array of euler angles in radians
+ * @return array of euler angles in radians (x,y,z)
  */
 std::array<double,3> DeviceState::getEstOrientAngles() {
     std::array<double,3> ret = {0,0,0};
@@ -50,9 +58,17 @@ std::array<double,3> DeviceState::getEstOrientAngles() {
     return ret;
 }
 
+/** Access and return current stimated orientation as quaternion
+ *
+ * @return orientation quaternion
+ */
 etk::Quaternion DeviceState::getEstOrientQ(){
         return estOrient;
 }
+
+/** Updates device state from IMU data
+ *
+ */
 
 void DeviceState::updateFromIMU(){
     std::array<std::array<double,3>,3> imuData = dev.getIMUdata();

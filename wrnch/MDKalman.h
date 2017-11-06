@@ -30,6 +30,11 @@ public:
             filters.push_back(new Kalman(init_states[i]));
     }
 
+    MDKalman(const MDKalman& copy){
+        for (auto filter_p: copy.filters)
+            filters.push_back(new Kalman(filter_p->state));
+    }
+
     ~MDKalman(){
         for (auto filter_p : filters)
             delete filter_p;

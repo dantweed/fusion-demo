@@ -1,7 +1,7 @@
 //
 // IMU.h
-// A 9DOF IMU with accelerometers, gyroscopes, and magnetometers
-//  all 3-axis independent.
+// 9DOF IMU with accelerometers, gyroscopes, and magnetometers
+//  all independent 3-axis.
 //
 // Created by Daniel.Tweed on 11/1/2017.
 //
