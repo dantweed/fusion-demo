@@ -1,0 +1,24 @@
+BUILD INSTRUCTIONS
+==================
+
+Pre-requisites:
+---------------
+Assumes Windows environment
+Installation of Qt 5.9 or later
+	Including:
+		- MinGW
+		- Qt Data Visualization
+		- Qt Charts
+
+Variables:		
+	${QT_INSTALL_FOLDER}
+	${PROJECT_BASE_FOLDER}
+
+Build Steps:
+------------
+1. Create the build output directory in ${PROJECT_BASE_FOLDER}
+2. CD into the build output directory
+3. Run qmake
+	${QT_INSTALL_FOLDER}\5.9\mingw53_32\bin\qmake.exe ${PROJECT_BASE_FOLDER}\wrnch.pro -spec win32-g++
+4. Run make 
+	${QT_INSTALL_FOLDER}\Tools\mingw530_32\bin\mingw32-make.exe
