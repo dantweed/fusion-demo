@@ -39,25 +39,23 @@
 
 using namespace QtDataVisualization;
 
+const static double PRED_FWD_DELTA = 0.1; // Forward time step for prediction (sec)
+
 const static double IMU_FREQ = 30;              //IMU data availability frequency (Hz)
 const static double IMU_PERIOD = 1/IMU_FREQ;    // IMU data availability period (sec)
 const static double IMU_OFFSET = 0.5*IMU_PERIOD;// Offset between reporting of each device (sec)
 
-const static double C_IMU_LAG = IMU_PERIOD/10;  //Lag between IMU sense and reporting
-const static double X_IMU_LAG = IMU_PERIOD/10;  //Lag between IMU sense and reporting
 const static double POS_LAG = 0.01; //Camera position reporting lag (sec)
+const static double ALPHA = 0.2; //Constant used in complimentary filter for X position in C's reference frame
 
-const std::string IMU_DATA_FILE = "C:\\Users\\daniel.tweed\\Documents\\GitHub\\wrnch-qt\\smTestData.csv";
-const static double PRED_FWD_DELTA = 0.2; // Forward time step for prediction (sec)
-const static double ALPHA = 0.6; //Constant used in complimentary filter for X position in C's reference frame
+const std::string IMU_DATA_FILE = "C:\\Users\\mdani\\Documents\\GitHub\\wrnch-qt\\smTestData.csv";
 
+//Some forward declarations
 std::array<double,3> rotate3DVector(const etk::Matrix<3,3>& cRotation,  std::array<double,3> vector);
 std::array<double,3> transformPosToRefFrame (const etk::Matrix<3,3>& rotation, std::array<double,3> position,
                                              std::array<double,3> translation);
-
 void initQObjects( Q3DScatter& graph,  QWidget& container);
 void setupSeries(Q3DScatter& graph);
-
 std::vector<std::array<std::array<double,3>,3>> getIMUData();
 
 int main(int argc, char**argv) {
@@ -65,13 +63,7 @@ int main(int argc, char**argv) {
     Device X;
     Camera C;
     DeviceState xState(X, IMU_PERIOD);
-    DeviceState cState(C, IMU_PERIOD);
-
-    std::array<double,3> xPosInCFrame;
-    std::array<double,3> xEstPosInCFrame;
-    etk::Matrix<3,3> cRotation;
-    std::array<double,3> xVelInC;
-    std::array<double,3> xFuturePosInC;  
+    DeviceState cState(C, IMU_PERIOD);   
 
     QApplication app(argc, argv);
     Q3DScatter *graph = new Q3DScatter();
@@ -122,18 +114,22 @@ int main(int argc, char**argv) {
     C.setTrackingData(initFrameTranslation);
 
     for (auto dataSet : data) {
-
+        std::array<double,3> xPosInCFrame;
+        std::array<double,3> xEstPosInCFrame;
+        etk::Matrix<3,3> cRotation;
+        std::array<double,3> xVelInC;
+        std::array<double,3> xFuturePosInCFrame;
         //X position in C's reference fram at PRED_FWD_DELTA is based on current estimate of X position in C
         // plus velocity of X in C's reference frame time PRED_FWD_DELTA
         //Current rotation matrix between X and C reference frames from C orientation quaternion
-        //cState.updateFromIMU(dataSet);
+        cState.updateFromIMU(dataSet);
         xState.updateFromIMU(dataSet);
 
         cRotation = cState.getEstOrientQ().toMatrix();
 
         //Rotate X's velocity into C's reference frame
         xVelInC = rotate3DVector(cRotation, xState.getEstVel());
-    {using namespace wrnch; //For std::array arithmetic
+    {using namespace wrnch; //For std::array arithmetic. Operator overload shadows overloaded operators in QtDataVisualization
 
         //Update translation from C to X reference frame        
         currTranslation = initFrameTranslation + cState.getEstPos();
@@ -142,23 +138,22 @@ int main(int argc, char**argv) {
         xPosInCFrame = transformPosToRefFrame (cRotation, xState.getEstPos(), currTranslation);
 
         //If available, adjust with C's 3D position data reported for X
+        C.setTrackingData(xPosInCFrame);//TODO: Plus noise, cannot access std::normal_distribution
 
-        C.setTrackingData(xPosInCFrame);//TODO: Plus noise
         if (C.isInField())
             xEstPosInCFrame = ALPHA * xPosInCFrame + (1 - ALPHA) * C.getTrackingData();
-        else //Else use IMU data
+        else //Else use IMU data only
             xEstPosInCFrame = xPosInCFrame;
 
         //Predict future position of X
-        xFuturePosInC = xEstPosInCFrame + xVelInC * (PRED_FWD_DELTA+X_IMU_LAG);
-    }
+        xFuturePosInCFrame = xEstPosInCFrame + xVelInC * PRED_FWD_DELTA;    }
 
         std::array<double,3> cPos = cState.getEstPos();
         //std::array<double,3> xPos = rotate3DVector(cRotation,xState.getEstPos());
 
         (cPosDataArrayPtr++)->setPosition(QVector3D(cPos[0],cPos[1],cPos[2]));
         (xPosDataArrayPtr++)->setPosition(QVector3D(xPosInCFrame[0],xPosInCFrame[1],xPosInCFrame[2]));
-        (xPredictedPosPtr++)->setPosition(QVector3D(xFuturePosInC[0],xFuturePosInC[1],xFuturePosInC[2]));
+        (xPredictedPosPtr++)->setPosition(QVector3D(xFuturePosInCFrame[0],xFuturePosInCFrame[1],xFuturePosInCFrame[2]));
     }
     graph->seriesList().at(0)->dataProxy()->resetArray(cPosDataArray); //Add C position data to plot
     graph->seriesList().at(1)->dataProxy()->resetArray(xPosDataArray); //Add X position data
@@ -213,12 +208,12 @@ void initQObjects( Q3DScatter& graph,  QWidget& container) {
     graph.activeTheme()->setGridEnabled(true);
     graph.activeTheme()->setBackgroundEnabled(true);
     graph.activeTheme()->setLabelBackgroundEnabled(false);
-    graph.axisX()->setMax(3);
+   /* graph.axisX()->setMax(3);
     graph.axisY()->setMax(3);
     graph.axisZ()->setMax(3);
     graph.axisX()->setMin(-3);
     graph.axisY()->setMin(-3);
-    graph.axisZ()->setMin(-3);
+    graph.axisZ()->setMin(-3);*/
     graph.axisX()->setTitle("X");
     graph.axisY()->setTitle("Y");
     graph.axisZ()->setTitle("Z");
@@ -232,18 +227,17 @@ void initQObjects( Q3DScatter& graph,  QWidget& container) {
 void setupSeries(Q3DScatter& graph) {
     QScatterDataProxy *cDataProxy = new QScatterDataProxy;
     QScatter3DSeries *cDataSeries = new QScatter3DSeries(cDataProxy);
-    cDataSeries->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
+    cDataSeries->setItemLabelFormat(QStringLiteral("(@seriesName) @xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
     cDataSeries->setMesh(QAbstract3DSeries::MeshBevelCube);
     cDataSeries->setItemSize(0.1f);
     cDataSeries->setBaseColor(QColor("black"));
     cDataSeries->setItemLabelVisible(true);
     cDataSeries->setName(QStringLiteral("C"));
-
     graph.addSeries(cDataSeries);
 
     QScatterDataProxy *xDataProxy = new QScatterDataProxy;
     QScatter3DSeries *xDataSeries = new QScatter3DSeries(xDataProxy);
-    xDataSeries->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
+    xDataSeries->setItemLabelFormat(QStringLiteral("(@seriesName) @xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
     xDataSeries->setMesh(QAbstract3DSeries::MeshPyramid);
     xDataSeries->setItemSize(0.1f);
     xDataSeries->setBaseColor(QColor("blue"));
@@ -254,12 +248,12 @@ void setupSeries(Q3DScatter& graph) {
 
     QScatterDataProxy *xPredictedDataProxy = new QScatterDataProxy;
     QScatter3DSeries *xPredictedDataSeries = new QScatter3DSeries(xPredictedDataProxy);
-    xPredictedDataSeries->setItemLabelFormat(QStringLiteral("@xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
+    xPredictedDataSeries->setItemLabelFormat(QStringLiteral("(@seriesName) @xTitle: @xLabel @yTitle: @yLabel @zTitle: @zLabel"));
     xPredictedDataSeries->setMesh(QAbstract3DSeries::MeshSphere);
     xPredictedDataSeries->setItemSize(0.1f);
     xPredictedDataSeries->setBaseColor(QColor("red"));
-    xDataSeries->setItemLabelVisible(true);
-    xDataSeries->setName(QStringLiteral("X\'"));
+    xPredictedDataSeries->setItemLabelVisible(true);
+    xPredictedDataSeries->setName(QStringLiteral("X\'"));
 
     graph.addSeries(xPredictedDataSeries);
 }
@@ -273,6 +267,8 @@ std::vector<std::array<std::array<double,3>,3>> getIMUData() {
         std::ifstream fileIn(IMU_DATA_FILE);
 
         while(fileIn.good() && std::getline(fileIn, line) ) {
+            if (line.empty())
+                continue;
             std::vector<double> tokens;
             std::string token;
             std::array<std::array<double,3>,3> reading;

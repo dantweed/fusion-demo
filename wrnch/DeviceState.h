@@ -30,7 +30,7 @@ public:
 private:
     Device & dev;
     float deltaT;   //Device data update period
-
+    float imuLag;
     //Relative to own reference frame
     std::array<double,3> estPos;    // m/s
     std::array<double,3> estVel;    // m/s

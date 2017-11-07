@@ -11,6 +11,8 @@ using namespace wrnch;
 
 DeviceState::DeviceState(Device & dev_, float dT) : dev(dev_), deltaT(dT){
 
+    imuLag = deltaT/2;
+
     //TODO: Validate initial values for k_state
     std::array<std::array<double,3> ,3>  initData = dev.getIMUdata();
     acc.init(0.1,1,0,initData[0]);
@@ -109,7 +111,7 @@ void DeviceState::updateVel() {
  *  and velocity calculated
  */
 void DeviceState::updatePos(){
-    estPos = estPos + estVel*deltaT;
+    estPos = estPos + estVel*(imuLag+deltaT);
 }
 
 /** Updates device oritentation in its own reference frame from
