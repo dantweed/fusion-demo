@@ -18,8 +18,8 @@ DeviceState::DeviceState(Device & dev_, float dT) : dev(dev_), deltaT(dT){
     acc.init(0.1,1,0,initData[0]);
 
     //Calibrate to intial readings (i.e. assume gyro/mag readings to  be correct/calibrated)
-    gyro.init(0.1,1,0,initData[1]);//double q, double r, double p, double x_init
-    mag.init(0.1,1,0,initData[2]);
+    gyro.init(0.15,1,0,initData[1]);//double q, double r, double p, double x_init
+    mag.init(0.15,1,0,initData[2]);
 
     estPos = {0,0,0};
     estVel = {0,0,0};
@@ -104,7 +104,7 @@ void DeviceState::updateVel() {
 
     std::array<double,3> accData = acc.filtered();
 
-    estVel  = estVel + (accData - g)*deltaT;
+    estVel  = estVel + (accData - g)*(deltaT);
 }
 
 /** Updates device position in its own reference frame based on current position

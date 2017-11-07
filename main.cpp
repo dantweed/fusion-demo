@@ -146,7 +146,7 @@ int main(int argc, char**argv) {
             xEstPosInCFrame = xPosInCFrame;
 
         //Predict future position of X
-        xFuturePosInCFrame = xEstPosInCFrame + xVelInC * PRED_FWD_DELTA;    }
+        xFuturePosInCFrame = xEstPosInCFrame + xVelInC * (PRED_FWD_DELTA);    }
 
         std::array<double,3> cPos = cState.getEstPos();
         //std::array<double,3> xPos = rotate3DVector(cRotation,xState.getEstPos());
